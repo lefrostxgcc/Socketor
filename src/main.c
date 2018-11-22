@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 
 void run_server(const char *port, const char *operation)
 {
-	char			message[32];
+	char			message[64];
 	struct Phone	phone;
 	const char		*a;
 	const char		*b;
