@@ -43,7 +43,7 @@ void run_server(const char *port, const char *operation)
 		snprintf(message, sizeof(message)/sizeof(message[0]),
 			"%s %s %s = %d", a, operation, b, result);
 		phone_writeline(&phone, message);
-		printf("%s\n", message);
+		printf("Accepted: %s\n", message);
 		phone_close(&phone);
 	}
 }
