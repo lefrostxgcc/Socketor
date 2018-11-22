@@ -2,15 +2,15 @@
 #include <string.h>
 
 void run_server(const char *port, const char *op);
-void run_client(const char *port, const char *op, const char *a, const char *b);
+void run_client(const char *ip, const char *port, const char *a, const char *b);
 
 struct Phone
 {
 };
 
 int calculate(const char *operation, const char *a, const char *b);
-void run_client(const char *port, const char *op, const char *a, const char *b);
 struct Phone phone_create_server(const char *port);
+struct Phone phone_create_client(const char *address, const char *port);
 void phone_accept(struct Phone *phone);
 const char *phone_readline(struct Phone *phone);
 void phone_writeline(struct Phone *phone, const char *str);
@@ -58,8 +58,17 @@ void run_server(const char *port, const char *operation)
 	}
 }
 
-void run_client(const char *port, const char *op, const char *a, const char *b)
+void run_client(const char *ip, const char *port, const char *a, const char *b)
 {
+	struct Phone	phone;
+	const char		*answer;
+
+	phone = phone_create_client(ip, port);
+	phone_writeline(&phone, a);
+	phone_writeline(&phone, b);
+	answer = phone_readline(&phone);
+	printf("%s\n", answer);
+	phone_close(&phone);
 }
 
 int calculate(const char *operation, const char *a, const char *b)
@@ -68,6 +77,13 @@ int calculate(const char *operation, const char *a, const char *b)
 }
 
 struct Phone phone_create_server(const char *port)
+{
+	struct Phone	phone;
+
+	return phone;
+}
+
+struct Phone phone_create_client(const char *address, const char *port)
 {
 	struct Phone	phone;
 
