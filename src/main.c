@@ -1,20 +1,10 @@
 #include <stdio.h>
 #include <string.h>
+#include "phone.h"
 
 void run_server(const char *port, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
-
-struct Phone
-{
-};
-
 int calculate(const char *operation, const char *a, const char *b);
-struct Phone phone_create_server(const char *port);
-struct Phone phone_create_client(const char *address, const char *port);
-void phone_accept(struct Phone *phone);
-const char *phone_readline(struct Phone *phone);
-void phone_writeline(struct Phone *phone, const char *str);
-void phone_close(struct Phone *phone);
 
 int main(int argc, char *argv[])
 {
@@ -74,35 +64,4 @@ void run_client(const char *ip, const char *port, const char *a, const char *b)
 int calculate(const char *operation, const char *a, const char *b)
 {
 	return 0;
-}
-
-struct Phone phone_create_server(const char *port)
-{
-	struct Phone	phone;
-
-	return phone;
-}
-
-struct Phone phone_create_client(const char *address, const char *port)
-{
-	struct Phone	phone;
-
-	return phone;
-}
-
-void phone_accept(struct Phone *phone)
-{
-}
-
-const char *phone_readline(struct Phone *phone)
-{
-	return "";
-}
-
-void phone_writeline(struct Phone *phone, const char *str)
-{
-}
-
-void phone_close(struct Phone *phone)
-{
 }
