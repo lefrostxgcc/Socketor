@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "phone.h"
 
 void run_server(const char *port, const char *op);
@@ -63,5 +64,20 @@ void run_client(const char *ip, const char *port, const char *a, const char *b)
 
 int calculate(const char *operation, const char *a, const char *b)
 {
-	return 0;
+	int		x;
+	int		y;
+
+	x = atoi(a);
+	y = atoi(b);
+	if (operation != NULL)
+		switch(operation[0])
+		{
+			case '-': return x - y;
+			case '*': return x * y;
+			case '/': return x / y;
+			case '+': 
+			default : break;
+		}
+
+	return x + y;
 }
