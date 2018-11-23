@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "phone.h"
 
 static int		create_server_socket(int port);
@@ -49,6 +50,11 @@ void phone_fillbuf(struct Phone *phone)
 
 void phone_readline(struct Phone *phone, char *line)
 {
+	if (phone->inpos >= BUFSIZE)
+		return;
+
+	sscanf(phone->inbuf + phone->inpos, "%s\n", &line);
+	phone->inpos += strlen(line);
 }
 
 void phone_writeline(struct Phone *phone, const char *str)
