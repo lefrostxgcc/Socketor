@@ -14,10 +14,12 @@ AC_PROG_CC
 # Checks for libraries.
 
 # Checks for header files.
+AC_CHECK_HEADERS([arpa/inet.h stdlib.h string.h sys/socket.h unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 
 # Checks for library functions.
+AC_CHECK_FUNCS([socket])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile])
