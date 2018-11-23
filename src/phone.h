@@ -7,7 +7,9 @@ enum { BUFSIZE = 64 };
 struct Phone
 {
 	char			inbuf[BUFSIZE];
+	char			outbuf[BUFSIZE];
 	int				inpos;
+	int				outpos;
 	int				client_socket;
 	int				server_socket;
 	enum phone_type	type;
