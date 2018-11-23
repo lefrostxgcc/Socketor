@@ -21,6 +21,11 @@ void phone_new_client(const char *ip, const char *port, struct Phone *phone)
 
 void phone_accept(struct Phone *phone)
 {
+	if ((phone->client_socket = accept(phone->server_socket, NULL, NULL)) < 0)
+	{
+		perror("accept");
+		exit(EXIT_FAILURE);
+	}
 }
 
 const char *phone_readline(struct Phone *phone)
