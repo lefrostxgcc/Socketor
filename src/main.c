@@ -33,7 +33,7 @@ void run_server(const char *port, const char *operation)
 	const char		*b;
 	int				result;
 
-	phone = phone_create_server(port);
+	phone_new_server(port, &phone);
 	printf("Started server with %s operation on %s\n", operation, port);
 	while (1)
 	{
@@ -54,7 +54,7 @@ void run_client(const char *ip, const char *port, const char *a, const char *b)
 	struct Phone	phone;
 	const char		*answer;
 
-	phone = phone_create_client(ip, port);
+	phone_new_client(ip, port, &phone);
 	phone_writeline(&phone, a);
 	phone_writeline(&phone, b);
 	answer = phone_readline(&phone);

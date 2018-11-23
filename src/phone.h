@@ -5,8 +5,8 @@ struct Phone
 {
 };
 
-struct Phone phone_create_server(const char *port);
-struct Phone phone_create_client(const char *address, const char *port);
+void phone_new_server(const char *port, struct Phone *phone);
+void phone_new_client(const char *ip, const char *port, struct Phone *phone);
 void phone_accept(struct Phone *phone);
 const char *phone_readline(struct Phone *phone);
 void phone_writeline(struct Phone *phone, const char *str);

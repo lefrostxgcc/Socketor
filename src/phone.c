@@ -1,17 +1,11 @@
 #include "phone.h"
 
-struct Phone phone_create_server(const char *port)
+void phone_new_server(const char *port, struct Phone *phone)
 {
-	struct Phone	phone;
-
-	return phone;
 }
 
-struct Phone phone_create_client(const char *address, const char *port)
+void phone_new_client(const char *ip, const char *port, struct Phone *phone)
 {
-	struct Phone	phone;
-
-	return phone;
 }
 
 void phone_accept(struct Phone *phone)
