@@ -1,5 +1,6 @@
 Makefile
 Makefile.in
+debug/
 build/
 build-aux/
 autom4te.cache
