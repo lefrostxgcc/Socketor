@@ -18,6 +18,9 @@ void phone_new_server(const char *port, struct Phone *phone)
 
 void phone_new_client(const char *ip, const char *port, struct Phone *phone)
 {
+	phone->type = PHONE_CLIENT;
+	phone->server_socket = -1;
+	phone->client_socket = create_client_socket(ip, atoi(port));
 }
 
 void phone_accept(struct Phone *phone)
