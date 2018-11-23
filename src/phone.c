@@ -10,6 +10,9 @@ static int		create_server_socket(int port);
 
 void phone_new_server(const char *port, struct Phone *phone)
 {
+	phone->type = PHONE_SERVER;
+	phone->server_socket = create_server_socket(atoi(port));
+	phone->client_socket = -1;
 }
 
 void phone_new_client(const char *ip, const char *port, struct Phone *phone)
