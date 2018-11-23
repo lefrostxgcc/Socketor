@@ -2,12 +2,15 @@
 #define SOCKETOR_PHONE_H
 
 enum phone_type { PHONE_SERVER, PHONE_CLIENT };
+enum { BUFSIZE = 64 };
 
 struct Phone
 {
-	enum phone_type type;
-	int client_socket;
-	int server_socket;
+	char			inbuf[BUFSIZE];
+	int				inpos;
+	int				client_socket;
+	int				server_socket;
+	enum phone_type	type;
 };
 
 void phone_new_server(const char *port, struct Phone *phone);
