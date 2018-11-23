@@ -38,6 +38,7 @@ void run_server(const char *port, const char *operation)
 	while (1)
 	{
 		phone_accept(&phone);
+		phone_fillbuf(&phone);
 		phone_readline(&phone, a);
 		phone_readline(&phone, b);
 		result = calculate(operation, a, b);
@@ -57,6 +58,7 @@ void run_client(const char *ip, const char *port, const char *a, const char *b)
 	phone_new_client(ip, port, &phone);
 	phone_writeline(&phone, a);
 	phone_writeline(&phone, b);
+	phone_fillbuf(&phone);
 	phone_readline(&phone, answer);
 	printf("%s\n", answer);
 	phone_close(&phone);
