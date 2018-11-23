@@ -7,6 +7,7 @@
 #include "phone.h"
 
 static int		create_server_socket(int port);
+static int		create_client_socket(const char *ip, int port);
 
 void phone_new_server(const char *port, struct Phone *phone)
 {
@@ -91,4 +92,34 @@ static int		create_server_socket(int port)
 	}
 
 	return server_socket;
+}
+
+static int		create_client_socket(const char *ip, int port)
+{
+	struct sockaddr_in	address = {};
+	int					client_socket;
+
+	if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		perror("socket");
+		exit(EXIT_FAILURE);
+	}
+
+	address.sin_family = AF_INET;
+	address.sin_port = htons(port);
+
+	if (inet_pton(AF_INET, ip, &address.sin_addr.s_addr) <= 0)
+	{
+		perror("inet_pton");
+		exit(EXIT_FAILURE);
+	}
+
+	if (connect(client_socket, (const struct sockaddr *) &address,
+		sizeof(address)) < 0)
+	{
+		perror("connect");
+		exit(EXIT_FAILURE);
+	}
+
+	return client_socket;
 }
