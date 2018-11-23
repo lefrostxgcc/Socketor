@@ -59,6 +59,17 @@ void phone_readline(struct Phone *phone, char *line)
 
 void phone_writeline(struct Phone *phone, const char *str)
 {
+	if (write(phone->client_socket, str, strlen(str)) < 0)
+	{
+		perror("write");
+		exit(EXIT_FAILURE);
+	}
+
+	if (write(phone->client_socket, "\n", 1) < 0)
+	{
+		perror("write");
+		exit(EXIT_FAILURE);
+	}
 }
 
 void phone_close(struct Phone *phone)
