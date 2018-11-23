@@ -1,8 +1,13 @@
 #ifndef SOCKETOR_PHONE_H
 #define SOCKETOR_PHONE_H
 
+enum phone_type { PHONE_SERVER, PHONE_CLIENT };
+
 struct Phone
 {
+	enum phone_type type;
+	int client_socket;
+	int server_socket;
 };
 
 void phone_new_server(const char *port, struct Phone *phone);
