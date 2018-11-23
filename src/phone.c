@@ -39,6 +39,18 @@ void phone_writeline(struct Phone *phone, const char *str)
 
 void phone_close(struct Phone *phone)
 {
+	if (phone->client_socket > 0 && close(phone->client_socket) < 0)
+	{
+		perror("close");
+		exit(EXIT_FAILURE);
+	}
+
+	if (phone->type == PHONE_SERVER && phone->server_socket > 0 &&
+		close(phone->server_socket) < 0)
+	{
+		perror("close");
+		exit(EXIT_FAILURE);
+	}
 }
 
 static int		create_server_socket(int port)
