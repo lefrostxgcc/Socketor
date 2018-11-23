@@ -3,6 +3,7 @@ Makefile.in
 build/
 build-aux/
 autom4te.cache
+configure
 configure.scan
 autoscan.log
 config.h*
