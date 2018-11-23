@@ -19,8 +19,9 @@ void phone_new_server(const char *port, struct Phone *phone);
 void phone_new_client(const char *ip, const char *port, struct Phone *phone);
 void phone_accept(struct Phone *phone);
 void phone_fillbuf(struct Phone *phone);
-void phone_readline(struct Phone *phone, char *line);
-void phone_writeline(struct Phone *phone, const char *str);
+void phone_flushbuf(struct Phone *phone);
+void phone_readline(struct Phone *phone, char *buf, int bufsize);
+void phone_writeline(struct Phone *phone, const char *line);
 void phone_close(struct Phone *phone);
 
 #endif

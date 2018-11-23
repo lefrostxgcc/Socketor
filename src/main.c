@@ -39,12 +39,13 @@ void run_server(const char *port, const char *operation)
 	{
 		phone_accept(&phone);
 		phone_fillbuf(&phone);
-		phone_readline(&phone, a);
-		phone_readline(&phone, b);
+		phone_readline(&phone, a, BUFSIZE);
+		phone_readline(&phone, b, BUFSIZE);
 		result = calculate(operation, a, b);
 		snprintf(message, sizeof(message)/sizeof(message[0]),
 			"%s %s %s = %d", a, operation, b, result);
 		phone_writeline(&phone, message);
+		phone_flushbuf(&phone);
 		printf("Accepted: %s\n", message);
 		phone_close(&phone);
 	}
@@ -58,8 +59,9 @@ void run_client(const char *ip, const char *port, const char *a, const char *b)
 	phone_new_client(ip, port, &phone);
 	phone_writeline(&phone, a);
 	phone_writeline(&phone, b);
+	phone_flushbuf(&phone);
 	phone_fillbuf(&phone);
-	phone_readline(&phone, answer);
+	phone_readline(&phone, answer, BUFSIZE);
 	printf("%s\n", answer);
 	phone_close(&phone);
 }
