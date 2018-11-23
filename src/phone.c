@@ -34,9 +34,8 @@ void phone_accept(struct Phone *phone)
 	}
 }
 
-const char *phone_readline(struct Phone *phone)
+void phone_readline(struct Phone *phone, char *line)
 {
-	return "\n";
 }
 
 void phone_writeline(struct Phone *phone, const char *str)

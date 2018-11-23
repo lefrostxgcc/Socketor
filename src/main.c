@@ -27,10 +27,10 @@ int main(int argc, char *argv[])
 
 void run_server(const char *port, const char *operation)
 {
-	char			message[64];
+	char			message[BUFSIZE];
 	struct Phone	phone;
-	const char		*a;
-	const char		*b;
+	char			a[BUFSIZE];
+	char			b[BUFSIZE];
 	int				result;
 
 	phone_new_server(port, &phone);
@@ -38,8 +38,8 @@ void run_server(const char *port, const char *operation)
 	while (1)
 	{
 		phone_accept(&phone);
-		a = phone_readline(&phone);
-		b = phone_readline(&phone);
+		phone_readline(&phone, a);
+		phone_readline(&phone, b);
 		result = calculate(operation, a, b);
 		snprintf(message, sizeof(message)/sizeof(message[0]),
 			"%s %s %s = %d", a, operation, b, result);
@@ -52,12 +52,12 @@ void run_server(const char *port, const char *operation)
 void run_client(const char *ip, const char *port, const char *a, const char *b)
 {
 	struct Phone	phone;
-	const char		*answer;
+	char 			answer[BUFSIZE];
 
 	phone_new_client(ip, port, &phone);
 	phone_writeline(&phone, a);
 	phone_writeline(&phone, b);
-	answer = phone_readline(&phone);
+	phone_readline(&phone, answer);
 	printf("%s\n", answer);
 	phone_close(&phone);
 }
