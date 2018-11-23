@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include "phone.h"
 
+#define		BUFSIZE		32
+
 void run_server(const char *port, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
 int calculate(const char *operation, const char *a, const char *b);

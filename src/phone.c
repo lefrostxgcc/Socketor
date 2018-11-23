@@ -9,14 +9,13 @@
 
 static int		create_server_socket(int port);
 static int		create_client_socket(const char *ip, int port);
-static int		read_line_from_buf(const char *buf);
 
 void phone_new_server(const char *port, struct Phone *phone)
 {
 	phone->type = PHONE_SERVER;
 	phone->server_socket = create_server_socket(atoi(port));
 	phone->client_socket = -1;
-	phone->inpos = BUFSIZE;
+	phone->inpos = PHONE_BUFSIZE;
 	phone->outpos = 0;
 }
 
@@ -25,7 +24,7 @@ void phone_new_client(const char *ip, const char *port, struct Phone *phone)
 	phone->type = PHONE_CLIENT;
 	phone->server_socket = -1;
 	phone->client_socket = create_client_socket(ip, atoi(port));
-	phone->inpos = BUFSIZE;
+	phone->inpos = PHONE_BUFSIZE;
 	phone->outpos = 0;
 }
 
@@ -40,9 +39,10 @@ void phone_accept(struct Phone *phone)
 
 void phone_fillbuf(struct Phone *phone)
 {
-	int				bytes_read;
+	int		bytes_read;
 
-	if ((bytes_read = read(phone->client_socket, phone->inbuf, BUFSIZE-1)) < 0)
+	if ((bytes_read = read(phone->client_socket, phone->inbuf,
+		PHONE_BUFSIZE - 1)) < 0)
 	{
 		perror("read");
 		exit(EXIT_FAILURE);
@@ -53,7 +53,7 @@ void phone_fillbuf(struct Phone *phone)
 
 void phone_flushbuf(struct Phone *phone)
 {
-	if (write(phone->client_socket, phone->outbuf, BUFSIZE) < 0)
+	if (write(phone->client_socket, phone->outbuf, PHONE_BUFSIZE) < 0)
 	{
 		perror("write");
 		exit(EXIT_FAILURE);
@@ -65,10 +65,10 @@ void phone_readline(struct Phone *phone, char *buf, int bufsize)
 {
 	int		i;
 
-	if (phone->inpos >= BUFSIZE)
+	if (phone->inpos >= PHONE_BUFSIZE)
 		return;
 
-	for (i = phone->inpos; i < BUFSIZE && phone->inbuf[i] != '\n'; i++)
+	for (i = phone->inpos; i < PHONE_BUFSIZE && phone->inbuf[i] != '\n'; i++)
 		;
 	phone->inbuf[i] = '\0';
 	strncpy(buf, phone->inbuf + phone->inpos, bufsize);
@@ -79,11 +79,12 @@ void phone_writeline(struct Phone *phone, const char *line)
 {
 	size_t		line_len;
 
-	if (phone->outpos >= BUFSIZE)
+	if (phone->outpos >= PHONE_BUFSIZE)
 		return;
 
 	line_len = strlen(line);
-	snprintf(phone->outbuf + phone->outpos, BUFSIZE-phone->outpos, "%s\n", line);
+	snprintf(phone->outbuf + phone->outpos, PHONE_BUFSIZE - phone->outpos,
+		"%s\n", line);
 	phone->outpos += line_len + 1;
 }
 
