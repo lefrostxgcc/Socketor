@@ -34,6 +34,19 @@ void phone_accept(struct Phone *phone)
 	}
 }
 
+void phone_fillbuf(struct Phone *phone)
+{
+	int				bytes_read;
+
+	if ((bytes_read = read(phone->client_socket, phone->inbuf, BUFSIZE-1)) < 0)
+	{
+		perror("read");
+		exit(EXIT_FAILURE);
+	}
+	phone->inbuf[bytes_read] = '\0';
+	phone->inpos = 0;
+}
+
 void phone_readline(struct Phone *phone, char *line)
 {
 }
