@@ -1,9 +1,30 @@
+#define _GNU_SOURCE
+#include <sched.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <linux/futex.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <errno.h>
 #include "phone.h"
 
 #define		BUFSIZE		32
+
+enum {THREAD_COUNT = 5, STACK_SIZE = 1 << 16, FUTEX_LOCK = 0, FUTEX_UNLOCK = 1};
+struct thread_info
+{
+	char	stack[STACK_SIZE];
+	int		pid;
+	int		ctid;
+} static threads[THREAD_COUNT];
+
+static int futex(int *uaddr, int futex_op, int val,
+					const struct timespec *timeout, int *uaddr2, int val3);
+static void wait_on_futex(int *futex_addr, int lock_val, int unlock_val);
+static void wake_up_futex(int *futex_addr, int lock_val, int unlock_val);
+static int run(void *arg);
 
 void run_server(const char *port, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
@@ -46,6 +67,7 @@ void run_server(const char *port, const char *operation)
 		result = calculate(operation, a, b);
 		snprintf(message, sizeof(message)/sizeof(message[0]),
 			"%s %s %s = %d", a, operation, b, result);
+		sleep(7);
 		phone_writeline(&phone, message);
 		phone_flushbuf(&phone);
 		printf("Accepted: %s\n", message);
@@ -86,4 +108,48 @@ int calculate(const char *operation, const char *a, const char *b)
 		}
 
 	return x + y;
+}
+
+static int run(void *arg)
+{
+}
+
+static int futex(int *uaddr, int futex_op, int val,
+					const struct timespec *timeout, int *uaddr2, int val3)
+{
+	return syscall(SYS_futex, uaddr, futex_op, val, timeout, uaddr, val3);
+}
+
+static void wait_on_futex(int *futex_addr, int lock_val, int unlock_val)
+{
+	int		status;
+
+	while (1)
+	{
+		if (__sync_bool_compare_and_swap(futex_addr, unlock_val, lock_val))
+			break;
+
+		status = futex(futex_addr, FUTEX_WAIT, lock_val, NULL, NULL, 0);
+
+		if (status < 0 && errno != EAGAIN)
+		{
+			perror("futex wait");
+			exit(1);
+		}
+	}
+}
+
+static void wake_up_futex(int *futex_addr, int lock_val, int unlock_val)
+{
+	int		status;
+
+	if (__sync_bool_compare_and_swap(futex_addr, lock_val, unlock_val))
+	{
+		status = futex(futex_addr, FUTEX_WAKE, unlock_val, NULL, NULL, 0);
+		if (status < 0)
+		{
+			perror("futex wake");
+			exit(1);
+		}
+	}
 }
