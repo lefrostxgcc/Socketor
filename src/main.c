@@ -15,15 +15,11 @@
 enum { STACK_SIZE = 1 << 16, FUTEX_LOCK = 0, FUTEX_UNLOCK = 1 };
 struct thread_info
 {
-	char	stack[STACK_SIZE];
-	int		pid;
-	int		ctid;
-};
-
-struct run_arg
-{
-	struct Phone	*phone;
+	char			stack[STACK_SIZE];
+	struct Phone	phone;
 	const char		*operation;
+	int				pid;
+	int				ctid;
 };
 
 static int futex(int *uaddr, int futex_op, int val,
@@ -31,6 +27,7 @@ static int futex(int *uaddr, int futex_op, int val,
 static void wait_on_futex(int *futex_addr, int lock_val, int unlock_val);
 static void wake_up_futex(int *futex_addr, int lock_val, int unlock_val);
 static int run(void *arg);
+static void spawn_threads(struct thread_info *threads, int count);
 
 void run_server(const char *port, const char *count, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
@@ -57,42 +54,45 @@ int main(int argc, char *argv[])
 void run_server(const char *port, const char *count, const char *operation)
 {
 	struct thread_info		*threads;
-	struct Phone			*phones;
-	struct run_arg			*args;
 	int						i;
-	int						flags;
 	int						thread_count;
-
-	flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD |
-		CLONE_SYSVSEM | CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID;
 
 	thread_count = atoi(count);
 	threads = (struct thread_info *) malloc(thread_count *
 		sizeof(struct thread_info));
-	phones = (struct Phone *) malloc(thread_count * sizeof(struct Phone));
-	args = (struct run_arg *) malloc(thread_count * sizeof(struct run_arg));
 
-	phone_new_server(port, &phones[0]);
-	printf("Started server with %s operation on %s\n", operation, port);
-	for (i = 0; i < thread_count; i++)
+	phone_new_server(port, &threads[0].phone);
+	threads[0].operation = operation;
+	printf("Started server with %s operation on %s [%d threads]\n",
+		operation, port, thread_count);
+
+	spawn_threads(threads, thread_count);
+
+	free(threads);
+}
+
+static void spawn_threads(struct thread_info *threads, int count)
+{
+	int		i;
+	int		flags;
+
+	flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD |
+		CLONE_SYSVSEM | CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID;
+
+	for (i = 0; i < count; i++)
 	{
-		phones[i] = phones[0];
-		args[i].phone = &phones[i];
-		args[i].operation = operation;
+		threads[i] = threads[0];
 		if ((threads[i].pid = clone(run, threads[i].stack + STACK_SIZE,
-			flags, &args[i], NULL, NULL, &threads[i].ctid)) < 0)
+			flags, &threads[i], NULL, NULL, &threads[i].ctid)) < 0)
 		{
 			perror("clone");
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	for (i = 0; i < thread_count; i++)
+	sleep(1);
+	for (i = 0; i < count; i++)
 		wait_on_futex(&threads[i].ctid, threads[i].pid, 0);
-
-	free(args);
-	free(phones);
-	free(threads);
 }
 
 void run_client(const char *ip, const char *port, const char *a, const char *b)
@@ -139,8 +139,8 @@ static int run(void *arg)
 	const char		*operation;
 	int				result;
 	
-	phone = ((struct run_arg *) arg)->phone;
-	operation = ((struct run_arg *) arg)->operation;
+	phone = &((struct thread_info *) arg)->phone;
+	operation = ((struct thread_info *) arg)->operation;
 	while (1)
 	{
 		phone_accept(phone);
@@ -148,7 +148,7 @@ static int run(void *arg)
 		phone_readline(phone, a, BUFSIZE);
 		phone_readline(phone, b, BUFSIZE);
 		result = calculate(operation, a, b);
-		sleep(7);
+		sleep(3);
 		snprintf(message, sizeof(message)/sizeof(message[0]),
 			"%s %s %s = %d", a, operation, b, result);
 		phone_writeline(phone, message);
