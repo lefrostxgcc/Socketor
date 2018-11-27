@@ -20,11 +20,19 @@ struct thread_info
 	int		ctid;
 } static threads[THREAD_COUNT];
 
+static struct Phone	phones[THREAD_COUNT];
+
+struct thread_arg
+{
+	struct Phone	*phone;
+	const char		*operation;
+} static run_args[THREAD_COUNT];
+
 static int futex(int *uaddr, int futex_op, int val,
 					const struct timespec *timeout, int *uaddr2, int val3);
 static void wait_on_futex(int *futex_addr, int lock_val, int unlock_val);
 static void wake_up_futex(int *futex_addr, int lock_val, int unlock_val);
-static int run(void *phone_arg, void *operation_arg);
+static int run(void *arg);
 
 void run_server(const char *port, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
@@ -50,29 +58,30 @@ int main(int argc, char *argv[])
 
 void run_server(const char *port, const char *operation)
 {
-	char			message[BUFSIZE];
-	struct Phone	phone;
-	char			a[BUFSIZE];
-	char			b[BUFSIZE];
-	int				result;
+	int				i;
+	int				flags;
 
-	phone_new_server(port, &phone);
+	phone_new_server(port, &phones[0]);
 	printf("Started server with %s operation on %s\n", operation, port);
-	while (1)
+
+	flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD |
+		CLONE_SYSVSEM | CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID;
+
+	for (i = 0; i < THREAD_COUNT; i++)
 	{
-		phone_accept(&phone);
-		phone_fillbuf(&phone);
-		phone_readline(&phone, a, BUFSIZE);
-		phone_readline(&phone, b, BUFSIZE);
-		result = calculate(operation, a, b);
-		snprintf(message, sizeof(message)/sizeof(message[0]),
-			"%s %s %s = %d", a, operation, b, result);
-		sleep(7);
-		phone_writeline(&phone, message);
-		phone_flushbuf(&phone);
-		printf("Accepted: %s\n", message);
-		phone_close(&phone);
+		phones[i] = phones[0];
+		run_args[i].phone = &phones[i];
+		run_args[i].operation = operation;
+		if ((threads[i].pid = clone(run, threads[i].stack + STACK_SIZE,
+			flags, &run_args[i], NULL, NULL, &threads[i].ctid)) < 0)
+		{
+			perror("clone");
+			exit(EXIT_FAILURE);
+		}
 	}
+
+	for (i = 0; i < THREAD_COUNT; i++)
+		wait_on_futex(&threads[i].ctid, threads[i].pid, 0);
 }
 
 void run_client(const char *ip, const char *port, const char *a, const char *b)
@@ -110,7 +119,7 @@ int calculate(const char *operation, const char *a, const char *b)
 	return x + y;
 }
 
-static int run(void *phone_arg, void *operation_arg)
+static int run(void *args)
 {
 	char			message[BUFSIZE];
 	char			a[BUFSIZE];
@@ -119,8 +128,8 @@ static int run(void *phone_arg, void *operation_arg)
 	const char		*operation;
 	int				result;
 	
-	phone = (struct Phone *) phone_arg;
-	operation = (const char *) operation_arg;
+	phone = ((struct thread_arg *) args)->phone;
+	operation = ((struct thread_arg *) args)->operation;
 	while (1)
 	{
 		phone_accept(phone);
