@@ -24,7 +24,7 @@ static int futex(int *uaddr, int futex_op, int val,
 					const struct timespec *timeout, int *uaddr2, int val3);
 static void wait_on_futex(int *futex_addr, int lock_val, int unlock_val);
 static void wake_up_futex(int *futex_addr, int lock_val, int unlock_val);
-static int run(void *arg);
+static int run(void *phone_arg, void *operation_arg);
 
 void run_server(const char *port, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
@@ -110,8 +110,32 @@ int calculate(const char *operation, const char *a, const char *b)
 	return x + y;
 }
 
-static int run(void *arg)
+static int run(void *phone_arg, void *operation_arg)
 {
+	char			message[BUFSIZE];
+	char			a[BUFSIZE];
+	char			b[BUFSIZE];
+	struct Phone	*phone;
+	const char		*operation;
+	int				result;
+	
+	phone = (struct Phone *) phone_arg;
+	operation = (const char *) operation_arg;
+	while (1)
+	{
+		phone_accept(phone);
+		phone_fillbuf(phone);
+		phone_readline(phone, a, BUFSIZE);
+		phone_readline(phone, b, BUFSIZE);
+		result = calculate(operation, a, b);
+		sleep(7);
+		snprintf(message, sizeof(message)/sizeof(message[0]),
+			"%s %s %s = %d", a, operation, b, result);
+		phone_writeline(phone, message);
+		phone_flushbuf(phone);
+		printf("Accepted: %s\n", message);
+		phone_close(phone);
+	}
 }
 
 static int futex(int *uaddr, int futex_op, int val,
