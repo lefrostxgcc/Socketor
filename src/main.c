@@ -12,21 +12,19 @@
 
 #define		BUFSIZE		32
 
-enum {THREAD_COUNT = 5, STACK_SIZE = 1 << 16, FUTEX_LOCK = 0, FUTEX_UNLOCK = 1};
+enum { STACK_SIZE = 1 << 16, FUTEX_LOCK = 0, FUTEX_UNLOCK = 1 };
 struct thread_info
 {
 	char	stack[STACK_SIZE];
 	int		pid;
 	int		ctid;
-} static threads[THREAD_COUNT];
+};
 
-static struct Phone	phones[THREAD_COUNT];
-
-struct thread_arg
+struct run_arg
 {
 	struct Phone	*phone;
 	const char		*operation;
-} static run_args[THREAD_COUNT];
+};
 
 static int futex(int *uaddr, int futex_op, int val,
 					const struct timespec *timeout, int *uaddr2, int val3);
@@ -34,7 +32,7 @@ static void wait_on_futex(int *futex_addr, int lock_val, int unlock_val);
 static void wake_up_futex(int *futex_addr, int lock_val, int unlock_val);
 static int run(void *arg);
 
-void run_server(const char *port, const char *op);
+void run_server(const char *port, const char *count, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
 int calculate(const char *operation, const char *a, const char *b);
 
@@ -43,45 +41,58 @@ int main(int argc, char *argv[])
 	if (argc < 4)
 	{
 		fprintf(stderr,
-			"Usage: socketor server port operation\n"
+			"Usage: socketor server port threads operation\n"
 			"Usage: socketor client address port a b\n");
 		return 1;
 	}
 
-	if (strcmp(argv[1], "server") == 0 && argc == 4)
-		run_server(argv[2], argv[3]);
+	if (strcmp(argv[1], "server") == 0 && argc == 5)
+		run_server(argv[2], argv[3], argv[4]);
 	else if (strcmp(argv[1], "client") == 0 && argc == 6)
 		run_client(argv[2], argv[3], argv[4], argv[5]);
 
 	return 0;
 }
 
-void run_server(const char *port, const char *operation)
+void run_server(const char *port, const char *count, const char *operation)
 {
-	int				i;
-	int				flags;
-
-	phone_new_server(port, &phones[0]);
-	printf("Started server with %s operation on %s\n", operation, port);
+	struct thread_info		*threads;
+	struct Phone			*phones;
+	struct run_arg			*args;
+	int						i;
+	int						flags;
+	int						thread_count;
 
 	flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD |
 		CLONE_SYSVSEM | CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID;
 
-	for (i = 0; i < THREAD_COUNT; i++)
+	thread_count = atoi(count);
+	threads = (struct thread_info *) malloc(thread_count *
+		sizeof(struct thread_info));
+	phones = (struct Phone *) malloc(thread_count * sizeof(struct Phone));
+	args = (struct run_arg *) malloc(thread_count * sizeof(struct run_arg));
+
+	phone_new_server(port, &phones[0]);
+	printf("Started server with %s operation on %s\n", operation, port);
+	for (i = 0; i < thread_count; i++)
 	{
 		phones[i] = phones[0];
-		run_args[i].phone = &phones[i];
-		run_args[i].operation = operation;
+		args[i].phone = &phones[i];
+		args[i].operation = operation;
 		if ((threads[i].pid = clone(run, threads[i].stack + STACK_SIZE,
-			flags, &run_args[i], NULL, NULL, &threads[i].ctid)) < 0)
+			flags, &args[i], NULL, NULL, &threads[i].ctid)) < 0)
 		{
 			perror("clone");
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	for (i = 0; i < THREAD_COUNT; i++)
+	for (i = 0; i < thread_count; i++)
 		wait_on_futex(&threads[i].ctid, threads[i].pid, 0);
+
+	free(args);
+	free(phones);
+	free(threads);
 }
 
 void run_client(const char *ip, const char *port, const char *a, const char *b)
@@ -119,7 +130,7 @@ int calculate(const char *operation, const char *a, const char *b)
 	return x + y;
 }
 
-static int run(void *args)
+static int run(void *arg)
 {
 	char			message[BUFSIZE];
 	char			a[BUFSIZE];
@@ -128,8 +139,8 @@ static int run(void *args)
 	const char		*operation;
 	int				result;
 	
-	phone = ((struct thread_arg *) args)->phone;
-	operation = ((struct thread_arg *) args)->operation;
+	phone = ((struct run_arg *) arg)->phone;
+	operation = ((struct run_arg *) arg)->operation;
 	while (1)
 	{
 		phone_accept(phone);
