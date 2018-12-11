@@ -161,7 +161,7 @@ static int		create_server_socket(int port)
 		exit(EXIT_FAILURE);
 	}
 
-	if (listen(server_socket, 10) < 0)
+	if (listen(server_socket, 50) < 0)
 	{
 		perror("listen");
 		exit(EXIT_FAILURE);
