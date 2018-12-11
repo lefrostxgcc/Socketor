@@ -82,7 +82,7 @@ static void accept_clients(struct thread_info *accept_thread)
 	int						flags;
 
 	flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD |
-		CLONE_SYSVSEM;
+		CLONE_SYSVSEM | CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID;
 
 	while (1)
 	{
@@ -90,8 +90,8 @@ static void accept_clients(struct thread_info *accept_thread)
 		thread = (struct thread_info *) malloc(sizeof(struct thread_info));
 		thread->phone = accept_thread->phone;
 		thread->operation = accept_thread->operation;
-		if ((clone(run, thread->stack + STACK_SIZE,
-			flags, thread, NULL, NULL, NULL)) < 0)
+		if ((thread->pid = clone(run, thread->stack + STACK_SIZE,
+			flags, thread, NULL, NULL, &thread->ctid)) < 0)
 		{
 			perror("clone");
 			exit(EXIT_FAILURE);
