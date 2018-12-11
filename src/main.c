@@ -27,72 +27,77 @@ static int futex(int *uaddr, int futex_op, int val,
 static void wait_on_futex(int *futex_addr, int lock_val, int unlock_val);
 static void wake_up_futex(int *futex_addr, int lock_val, int unlock_val);
 static int run(void *arg);
-static void spawn_threads(struct thread_info *threads, int count);
+static void accept_clients(struct thread_info *accept_thread);
 
-void run_server(const char *port, const char *count, const char *op);
+void run_server(const char *port, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
 int calculate(const char *operation, const char *a, const char *b);
+
+static void show_usage_message(void);
 
 int main(int argc, char *argv[])
 {
 	if (argc < 4)
 	{
-		fprintf(stderr,
-			"Usage: socketor server port threads operation\n"
-			"Usage: socketor client address port a b\n");
+		show_usage_message();
 		return 1;
 	}
 
-	if (strcmp(argv[1], "server") == 0 && argc == 5)
-		run_server(argv[2], argv[3], argv[4]);
+	if (strcmp(argv[1], "server") == 0 && argc == 4)
+		run_server(argv[2], argv[3]);
 	else if (strcmp(argv[1], "client") == 0 && argc == 6)
 		run_client(argv[2], argv[3], argv[4], argv[5]);
+	else
+	{
+		show_usage_message();
+		return 1;
+	}
 
 	return 0;
 }
 
-void run_server(const char *port, const char *count, const char *operation)
+static void show_usage_message(void)
 {
-	struct thread_info		*threads;
-	int						i;
-	int						thread_count;
-
-	thread_count = atoi(count);
-	threads = (struct thread_info *) malloc(thread_count *
-		sizeof(struct thread_info));
-
-	phone_new_server(port, &threads[0].phone);
-	threads[0].operation = operation;
-	printf("Started server with %s operation on %s [%d threads]\n",
-		operation, port, thread_count);
-
-	spawn_threads(threads, thread_count);
-
-	free(threads);
+	fprintf(stderr,
+			"Usage: socketor server port operation\n"
+			"Usage: socketor client address port a b\n");
 }
 
-static void spawn_threads(struct thread_info *threads, int count)
+void run_server(const char *port, const char *operation)
 {
-	int		i;
-	int		flags;
+	struct thread_info		*accept_thread;
+
+	accept_thread = (struct thread_info *) malloc(sizeof(struct thread_info));
+
+	phone_new_server(port, &accept_thread->phone);
+	accept_thread->operation = operation;
+	printf("Started server with %s operation on %s\n", operation, port);
+	accept_clients(accept_thread);
+	free(accept_thread);
+}
+
+static void accept_clients(struct thread_info *accept_thread)
+{
+	struct thread_info		*thread;
+	int						flags;
 
 	flags = CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGHAND | CLONE_THREAD |
-		CLONE_SYSVSEM | CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID;
+		CLONE_SYSVSEM;
 
-	for (i = 0; i < count; i++)
+	while (1)
 	{
-		threads[i] = threads[0];
-		if ((threads[i].pid = clone(run, threads[i].stack + STACK_SIZE,
-			flags, &threads[i], NULL, NULL, &threads[i].ctid)) < 0)
+		phone_accept(&accept_thread->phone);
+		thread = (struct thread_info *) malloc(sizeof(struct thread_info));
+		thread->phone = accept_thread->phone;
+		thread->operation = accept_thread->operation;
+		if ((clone(run, thread->stack + STACK_SIZE,
+			flags, thread, NULL, NULL, NULL)) < 0)
 		{
 			perror("clone");
 			exit(EXIT_FAILURE);
 		}
+		sleep(1);
 	}
-
-	sleep(1);
-	for (i = 0; i < count; i++)
-		wait_on_futex(&threads[i].ctid, threads[i].pid, 0);
 }
 
 void run_client(const char *ip, const char *port, const char *a, const char *b)
@@ -141,21 +146,17 @@ static int run(void *arg)
 	
 	phone = &((struct thread_info *) arg)->phone;
 	operation = ((struct thread_info *) arg)->operation;
-	while (1)
-	{
-		phone_accept(phone);
-		phone_fillbuf(phone);
-		phone_readline(phone, a, BUFSIZE);
-		phone_readline(phone, b, BUFSIZE);
-		result = calculate(operation, a, b);
-		sleep(3);
-		snprintf(message, sizeof(message)/sizeof(message[0]),
-			"%s %s %s = %d", a, operation, b, result);
-		phone_writeline(phone, message);
-		phone_flushbuf(phone);
-		printf("Accepted: %s\n", message);
-		phone_close(phone);
-	}
+	phone_fillbuf(phone);
+	phone_readline(phone, a, BUFSIZE);
+	phone_readline(phone, b, BUFSIZE);
+	result = calculate(operation, a, b);
+	sleep(3);
+	snprintf(message, sizeof(message)/sizeof(message[0]),
+		"%s %s %s = %d", a, operation, b, result);
+	phone_writeline(phone, message);
+	phone_flushbuf(phone);
+	printf("Accepted: %s\n", message);
+	phone_close(phone);
 }
 
 static int futex(int *uaddr, int futex_op, int val,
