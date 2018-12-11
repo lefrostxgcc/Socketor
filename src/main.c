@@ -97,6 +97,7 @@ static void accept_clients(struct thread_info *accept_thread)
 	struct thread_info_list *curr;
 	struct thread_info		*thread;
 	int						flags;
+	int						timeout;
 
 	thread_list = NULL;
 
@@ -105,7 +106,8 @@ static void accept_clients(struct thread_info *accept_thread)
 
 	while (1)
 	{
-		phone_accept(&accept_thread->phone);
+		timeout = thread_list ? 10 * 1000 : -1;
+		phone_accept(&accept_thread->phone, timeout);
 		if (accept_thread->phone.client_socket > 0)
 		{
 			thread = (struct thread_info *) malloc(sizeof(struct thread_info));

@@ -30,15 +30,13 @@ void phone_new_client(const char *ip, const char *port, struct Phone *phone)
 	phone->outpos = 0;
 }
 
-void phone_accept(struct Phone *phone)
+void phone_accept(struct Phone *phone, int timeout)
 {
 	struct pollfd	fds = {};
 	int				rc;
-	int				timeout;
 
 	fds.fd = phone->server_socket;
 	fds.events = POLLIN;
-	timeout = (10 * 1000);
 
 	rc = poll(&fds, 1, timeout); 
 	if (rc < 0)
