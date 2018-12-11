@@ -19,6 +19,8 @@ void phone_new_server(const char *port, struct Phone *phone)
 	phone->client_socket = -1;
 	phone->inpos = PHONE_BUFSIZE;
 	phone->outpos = 0;
+	memset(phone->inbuf, 0, PHONE_BUFSIZE);
+	memset(phone->outbuf, 0, PHONE_BUFSIZE); 
 }
 
 void phone_new_client(const char *ip, const char *port, struct Phone *phone)
@@ -28,6 +30,8 @@ void phone_new_client(const char *ip, const char *port, struct Phone *phone)
 	phone->client_socket = create_client_socket(ip, atoi(port));
 	phone->inpos = PHONE_BUFSIZE;
 	phone->outpos = 0;
+	memset(phone->inbuf, 0, PHONE_BUFSIZE);
+	memset(phone->outbuf, 0, PHONE_BUFSIZE); 
 }
 
 void phone_accept(struct Phone *phone, int timeout)
@@ -130,6 +134,7 @@ static int		create_server_socket(int port)
 		exit(EXIT_FAILURE);
 	}
 
+	on = 1;
 	opt = 1;
 	if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
 		&opt, sizeof(opt)) < 0)
