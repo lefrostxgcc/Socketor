@@ -1,7 +1,9 @@
 #include <unistd.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +32,26 @@ void phone_new_client(const char *ip, const char *port, struct Phone *phone)
 
 void phone_accept(struct Phone *phone)
 {
+	struct pollfd	fds = {};
+	int				rc;
+	int				timeout;
+
+	fds.fd = phone->server_socket;
+	fds.events = POLLIN;
+	timeout = (10 * 1000);
+
+	rc = poll(&fds, 1, timeout); 
+	if (rc < 0)
+    {
+		perror("poll");
+		exit(EXIT_FAILURE);
+	}
+	else if (rc == 0 || fds.revents != POLLIN)
+	{
+		phone->client_socket = -1;
+		return;
+	}
+
 	if ((phone->client_socket = accept(phone->server_socket, NULL, NULL)) < 0)
 	{
 		perror("accept");
@@ -102,6 +124,7 @@ static int		create_server_socket(int port)
 	struct sockaddr_in	address = {};
 	int					server_socket;
 	int					opt;
+	int					on;
 
 	if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
@@ -114,6 +137,13 @@ static int		create_server_socket(int port)
 		&opt, sizeof(opt)) < 0)
 	{
 		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+
+	if (ioctl(server_socket, FIONBIO, (char *) &on) < 0)
+	{
+		perror("ioctl");
+		close(server_socket);
 		exit(EXIT_FAILURE);
 	}
 

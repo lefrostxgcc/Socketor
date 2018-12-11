@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
+#include <sys/poll.h>
+#include <sys/ioctl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -91,6 +93,7 @@ static void accept_clients(struct thread_info *accept_thread)
 {
 	struct thread_info_list *thread_list;
 	struct thread_info_list *next;
+	struct thread_info_list *del;
 	struct thread_info_list *curr;
 	struct thread_info		*thread;
 	int						flags;
@@ -103,30 +106,31 @@ static void accept_clients(struct thread_info *accept_thread)
 	while (1)
 	{
 		phone_accept(&accept_thread->phone);
-		thread = (struct thread_info *) malloc(sizeof(struct thread_info));
-		thread_list = add_to_list(thread_list, thread);
-		thread->phone = accept_thread->phone;
-		thread->operation = accept_thread->operation;
-		if ((thread->pid = clone(run, thread->stack + STACK_SIZE,
-			flags, thread, NULL, NULL, &thread->ctid)) < 0)
+		if (accept_thread->phone.client_socket > 0)
 		{
-			perror("clone");
-			exit(EXIT_FAILURE);
+			thread = (struct thread_info *) malloc(sizeof(struct thread_info));
+			thread_list = add_to_list(thread_list, thread);
+			thread->phone = accept_thread->phone;
+			thread->operation = accept_thread->operation;
+			if ((thread->pid = clone(run, thread->stack + STACK_SIZE,
+				flags, thread, NULL, NULL, &thread->ctid)) < 0)
+			{
+				perror("clone");
+				exit(EXIT_FAILURE);
+			}
 		}
-		sleep(1);
 		for (curr = thread_list; curr != NULL; curr = next)
 		{
 			next = curr->next;
 			if (curr->node->ctid == 0)
 			{
-				if (curr = remove_from_list(&thread_list, curr->node))
-				free(curr->node);
-				free(curr);
+				if (del = remove_from_list(&thread_list, curr->node))
+				{
+					free(del->node);
+					free(del);
+				}
 			}
-			else
-				printf("%d ", curr->node->pid);
 		}
-		printf("\n");
 	}
 }
 
@@ -180,7 +184,6 @@ static int run(void *arg)
 	phone_readline(phone, a, BUFSIZE);
 	phone_readline(phone, b, BUFSIZE);
 	result = calculate(operation, a, b);
-	sleep(2);
 	snprintf(message, sizeof(message)/sizeof(message[0]),
 		"%s %s %s = %d", a, operation, b, result);
 	phone_writeline(phone, message);
