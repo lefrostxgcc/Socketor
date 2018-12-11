@@ -22,6 +22,13 @@ struct thread_info
 	int				ctid;
 };
 
+struct thread_info_list
+{
+	struct thread_info *node;
+	struct thread_info_list *prev;
+	struct thread_info_list *next;
+};
+
 static int futex(int *uaddr, int futex_op, int val,
 					const struct timespec *timeout, int *uaddr2, int val3);
 static void wait_on_futex(int *futex_addr, int lock_val, int unlock_val);
@@ -32,6 +39,10 @@ static void accept_clients(struct thread_info *accept_thread);
 void run_server(const char *port, const char *op);
 void run_client(const char *ip, const char *port, const char *a, const char *b);
 int calculate(const char *operation, const char *a, const char *b);
+static struct thread_info_list *
+add_to_list(struct thread_info_list *head, struct thread_info *node);
+static struct thread_info_list *
+remove_from_list(struct thread_info_list *head, struct thread_info *node);
 
 static void show_usage_message(void);
 
@@ -157,6 +168,56 @@ static int run(void *arg)
 	phone_flushbuf(phone);
 	printf("Accepted: %s\n", message);
 	phone_close(phone);
+}
+
+static struct thread_info_list *
+add_to_list(struct thread_info_list *head, struct thread_info *node)
+{
+	struct thread_info_list *tail;
+	struct thread_info_list *curr;
+
+	tail = (struct thread_info_list *) malloc(sizeof(struct thread_info_list));
+	tail->node = node;
+	tail->next = NULL;
+
+	if (head == NULL)
+	{
+		tail->prev = NULL;
+		head = tail;
+	}
+	else
+	{
+		for (curr = head; curr->next != NULL; curr = curr->next)
+			;
+
+		tail->prev = curr;
+		curr->next = tail;
+	}
+
+	return head;
+}
+
+static struct thread_info_list *
+remove_from_list(struct thread_info_list *head, struct thread_info *node)
+{
+	struct thread_info_list *curr;
+
+	if (head == NULL)
+		return NULL;
+
+	for (curr = head; curr != NULL && curr->node != node; curr = curr->next)
+		;
+
+	if (curr == NULL)
+		return NULL;
+	if (curr->prev != NULL)
+		curr->prev->next = curr->next;
+	if (curr->next != NULL)
+		curr->next->prev = curr->prev;
+
+	free(curr);
+
+	return head;
 }
 
 static int futex(int *uaddr, int futex_op, int val,
