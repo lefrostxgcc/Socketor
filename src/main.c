@@ -143,6 +143,7 @@ static void accept_clients(struct thread_info *accept_thread)
 		if (accept_thread->phone.client_socket > 0)
 		{
 			thread = (struct thread_info *) malloc(sizeof(struct thread_info));
+			thread->ctid = 1;
 			thread_list_head = add_thread_to_list(thread_list_head, thread);
 			thread->phone = accept_thread->phone;
 			thread->operation = accept_thread->operation;
@@ -208,6 +209,7 @@ static int run(void *arg)
 	phone_readline(phone, a, BUFSIZE);
 	phone_readline(phone, b, BUFSIZE);
 	result = calculate(operation, a, b);
+	sleep(5);
 	snprintf(message, sizeof(message)/sizeof(message[0]),
 		"%s %s %s = %d", a, operation, b, result);
 	phone_writeline(phone, message);
